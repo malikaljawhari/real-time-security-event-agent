@@ -228,7 +228,27 @@ const PRESET_SIMULATIONS: { label: string; badge: string; payload: SensorPayload
 ];
 
 export default function App() {
-  const [events, setEvents] = useState<SecurityEvent[]>(INITIAL_EVENTS);
+  const STORAGE_KEY = 'solink_agent_events_v1';
+  const [events, setEvents] = useState<SecurityEvent[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (err) {
+      console.error('Failed to read localStorage:', err);
+    }
+    return INITIAL_EVENTS;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
+    } catch (err) {
+      console.error('Failed to write localStorage:', err);
+    }
+  }, [events]);
   const [selectedSeverity, setSelectedSeverity] = useState<string>('All');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -316,6 +336,9 @@ export default function App() {
   };
 
   const handleResetDemo = () => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (err) {}
     setEvents(INITIAL_EVENTS);
     setSelectedSeverity('All');
     setSelectedStatus('All');
